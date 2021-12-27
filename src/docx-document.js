@@ -15,6 +15,7 @@ import {
 } from './schemas';
 import { convertVTreeToXML, namespaces } from './helpers';
 import generateDocumentTemplate from '../template/document.template';
+import { fontFamilyToTableObject } from './utils/font-family-conversion';
 
 const landscapeMargins = {
   top: 1800,
@@ -104,8 +105,9 @@ class DocxDocument {
     this.lastFooterId = 0;
     this.stylesObjects = [];
     this.numberingObjects = [];
+    this.fontTableObjects = [];
     this.relationshipFilename = 'document';
-    this.relationships = [{ fileName: 'document', lastRelsId: 4, rels: [] }];
+    this.relationships = [{ fileName: 'document', lastRelsId: 5, rels: [] }];
     this.mediaFiles = [];
     this.headerObjects = [];
     this.footerObjects = [];
@@ -304,10 +306,41 @@ class DocxDocument {
     return stylesXML.toString({ prettyPrint: true });
   }
 
-  // eslint-disable-next-line class-methods-use-this
   generateFontTableXML() {
     const fontTableXML = create({ encoding: 'UTF-8', standalone: true }, fontTableXMLString);
+    const fontNames = ['Arial', 'Calibri', 'Calibri Light', 'Courier New', 'Times New Roman'];
+    this.fontTableObjects.forEach(({ fontName, genericFontName }) => {
+      if (!fontNames.includes(fontName)) {
+        fontNames.push(fontName);
+        const fontFragment = fragment({
+          namespaceAlias: { w: namespaces.w },
+        })
+          .ele('@w', 'font')
+          .att('@w', 'name', fontName);
 
+        switch (genericFontName) {
+          case 'serif':
+            fontFragment.ele('@w', 'altName').att('@w', 'val', 'Times New Roman');
+            fontFragment.ele('@w', 'family').att('@w', 'val', 'roman');
+            fontFragment.ele('@w', 'pitch').att('@w', 'val', 'variable');
+            break;
+          case 'sans-serif':
+            fontFragment.ele('@w', 'altName').att('@w', 'val', 'Arial');
+            fontFragment.ele('@w', 'family').att('@w', 'val', 'swiss');
+            fontFragment.ele('@w', 'pitch').att('@w', 'val', 'variable');
+            break;
+          case 'monospace':
+            fontFragment.ele('@w', 'altName').att('@w', 'val', 'Courier New');
+            fontFragment.ele('@w', 'family').att('@w', 'val', 'modern');
+            fontFragment.ele('@w', 'pitch').att('@w', 'val', 'fixed');
+            break;
+          default:
+            break;
+        }
+
+        fontTableXML.root().import(fontFragment);
+      }
+    });
     return fontTableXML.toString({ prettyPrint: true });
   }
 
@@ -460,6 +493,12 @@ class DocxDocument {
     this.numberingObjects.push({ numberingId: this.lastNumberingId, listElements });
 
     return this.lastNumberingId;
+  }
+
+  createFont(fontFamily) {
+    const fontTableObject = fontFamilyToTableObject(fontFamily, this.font);
+    this.fontTableObjects.push(fontTableObject);
+    return fontTableObject.fontName;
   }
 
   createMediaFile(base64String) {
