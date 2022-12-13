@@ -1,6 +1,6 @@
 {
   "name": "html-to-docx",
-  "version": "1.6.4",
+  "version": "1.6.4-hyperlex.1",
   "description": "HTML to DOCX converter",
   "keywords": [
     "html",
@@ -19,8 +19,7 @@
     "lint": "eslint --fix .",
     "prettier:check": "prettier --check '**/*.{js}'",
     "validate": "run-s lint prettier:check",
-    "build": "rollup -c",
-    "prepare": "husky install"
+    "build": "rollup -c"
   },
   "repository": {
     "type": "git",
